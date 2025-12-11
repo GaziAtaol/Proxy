@@ -3,7 +3,7 @@
 ## Project Information
 - **Student Number**: [Your Student Number Here]
 - **Task**: Task 2 - Proxy Network for Data Aggregation
-- **Implementation Date**: December 2025
+- **Implementation Date**: December 2024
 - **Java Version**: JDK 1.8 (Java 8)
 
 ## Installation and Compilation

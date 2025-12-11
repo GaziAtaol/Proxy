@@ -154,14 +154,14 @@ public class Proxy {
             String[] parts = response.split(" ");
             if (parts.length >= 3) {
                 int count = Integer.parseInt(parts[1]);
-                for (int i = 0; i < count && i + 2 < parts.length; i++) {
+                for (int i = 0; i < count && (i + 2) < parts.length; i++) {
                     String key = parts[i + 2];
                     server.keys.add(key);
                     allKeys.add(key);
                     keyToServer.put(key, server);
                 }
-                // Check if it's a proxy (returns multiple keys or special response)
-                server.isProxy = count > 1 || response.contains("PROXY");
+                // Check if it's a proxy (returns multiple keys)
+                server.isProxy = count > 1;
             }
         }
     }
@@ -285,7 +285,9 @@ public class Proxy {
                             byte[] responseData = response.getBytes();
                             DatagramPacket responsePacket = new DatagramPacket(responseData,
                                     responseData.length, clientAddress, clientPort);
-                            socket.send(responsePacket);
+                            synchronized (socket) {
+                                socket.send(responsePacket);
+                            }
                         } catch (IOException e) {
                             System.err.println("UDP response error: " + e.getMessage());
                         }
