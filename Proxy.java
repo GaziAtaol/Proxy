@@ -320,10 +320,12 @@ public class Proxy {
 
                             byte[] responseData = response.getBytes(StandardCharsets.UTF_8);
                             DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, clientAddress, clientPort);
-                            synchronized (socket) {
-                                socket.send(responsePacket);
+                            
+                            // Create a new socket for sending the response to avoid issues with the listening socket
+                            try (DatagramSocket sendSocket = new DatagramSocket()) {
+                                sendSocket.send(responsePacket);
+                                System.out.println("UDP response sent to " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + response + "\"");
                             }
-                            System.out.println("UDP response sent to " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + response + "\"");
                         } catch (IOException e) {
                             System.err.println("UDP response error: " + e.getMessage());
                         } catch (Exception e) {
