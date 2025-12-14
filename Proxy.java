@@ -326,10 +326,14 @@ public class Proxy {
                             DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, clientAddress, clientPort);
                             
                             // Use the dedicated send socket (thread-safe with synchronization)
-                            synchronized (udpSendSocket) {
-                                udpSendSocket.send(responsePacket);
+                            if (udpSendSocket != null) {
+                                synchronized (udpSendSocket) {
+                                    udpSendSocket.send(responsePacket);
+                                }
+                                System.out.println("UDP response sent to " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + response + "\"");
+                            } else {
+                                System.err.println("UDP send socket not available");
                             }
-                            System.out.println("UDP response sent to " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + response + "\"");
                         } catch (IOException e) {
                             System.err.println("UDP response error: " + e.getMessage());
                         } catch (Exception e) {
