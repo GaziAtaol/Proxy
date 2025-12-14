@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.nio.charset.StandardCharsets;
 //=====================================================================================================
 public class Proxy {
     private int port;
@@ -305,7 +306,7 @@ public class Proxy {
 
                     final InetAddress clientAddress = packet.getAddress();
                     final int clientPort = packet.getPort();
-                    final String request = new String(packet.getData(), 0, packet.getLength()).trim();
+                    final String request = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
 
                     System.out.println("UDP request from " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + request + "\"");
 
@@ -317,7 +318,7 @@ public class Proxy {
                                 return;
                             }
 
-                            byte[] responseData = response.getBytes();
+                            byte[] responseData = response.getBytes(StandardCharsets.UTF_8);
                             DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, clientAddress, clientPort);
                             synchronized (socket) {
                                 socket.send(responsePacket);
