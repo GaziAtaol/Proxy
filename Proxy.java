@@ -163,11 +163,32 @@ public class Proxy {
     // PROXY → NODE KOMUT GÖNDERME
     // ---------------------------------------------------
     private String sendCommand(ServerInfo server, String command) {
+        // İlk önce belirlenen protokolü dene
+        String response = null;
         if (server.isTCP) {
-            return sendTCPCommand(server, command);
+            response = sendTCPCommand(server, command);
+            // TCP başarısız olduysa, UDP'yi dene (fallback)
+            if (response == null && !command.startsWith("QUIT")) {
+                System.err.println("TCP failed for " + server + ", trying UDP fallback");
+                response = sendUDPCommand(server, command);
+                // UDP başarılı olduysa, bundan sonra bu sunucu için UDP kullan
+                if (response != null) {
+                    server.isTCP = false;
+                }
+            }
         } else {
-            return sendUDPCommand(server, command);
+            response = sendUDPCommand(server, command);
+            // UDP başarısız olduysa, TCP'yi dene (fallback)
+            if (response == null && !command.startsWith("QUIT")) {
+                System.err.println("UDP failed for " + server + ", trying TCP fallback");
+                response = sendTCPCommand(server, command);
+                // TCP başarılı olduysa, bundan sonra bu sunucu için TCP kullan
+                if (response != null) {
+                    server.isTCP = true;
+                }
+            }
         }
+        return response;
     }
 
     private String sendTCPCommand(ServerInfo server, String command) {
@@ -453,7 +474,9 @@ public class Proxy {
                 return "NA";
             }
         }
-        return sendCommand(server, "GET VALUE " + keyName);
+        String response = sendCommand(server, "GET VALUE " + keyName);
+        // sendCommand null döndürürse (sunucuya ulaşılamazsa), NA döndür
+        return response != null ? response : "NA";
     }
 
     private String handleSet(String keyName, int value) {
@@ -467,7 +490,9 @@ public class Proxy {
                 return "NA";
             }
         }
-        return sendCommand(server, "SET " + keyName + " " + value);
+        String response = sendCommand(server, "SET " + keyName + " " + value);
+        // sendCommand null döndürürse (sunucuya ulaşılamazsa), NA döndür
+        return response != null ? response : "NA";
     }
 
     // ---------------------------------------------------
