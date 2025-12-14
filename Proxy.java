@@ -139,7 +139,7 @@ public class Proxy {
             DatagramSocket socket = new DatagramSocket();
             socket.setSoTimeout(2000);
             String command = "GET NAMES\n";
-            byte[] buffer = command.getBytes();
+            byte[] buffer = command.getBytes(StandardCharsets.UTF_8);
 
             DatagramPacket packet = new DatagramPacket(
                     buffer,
@@ -153,7 +153,7 @@ public class Proxy {
             buffer = new byte[1024];
             packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            String response = new String(packet.getData(), 0, packet.getLength()).trim();
+            String response = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
             socket.close();
             return response.startsWith("OK");
         } catch (Exception e) {
@@ -226,7 +226,7 @@ public class Proxy {
             DatagramSocket socket = new DatagramSocket();
             socket.setSoTimeout(2000);
 
-            byte[] buffer = (command + "\n").getBytes();
+            byte[] buffer = (command + "\n").getBytes(StandardCharsets.UTF_8);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
                     InetAddress.getByName(server.address), server.port);
             socket.send(packet);
@@ -240,7 +240,7 @@ public class Proxy {
             buffer = new byte[1024];
             packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            String response = new String(packet.getData(), 0, packet.getLength()).trim();
+            String response = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
 
             socket.close();
             return response;
