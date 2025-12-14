@@ -165,7 +165,9 @@ public class Proxy {
     private String sendCommand(ServerInfo server, String command) {
         // İlk önce belirlenen protokolü dene
         String response = null;
-        if (server.isTCP) {
+        boolean currentProtocol = server.isTCP;
+        
+        if (currentProtocol) {
             response = sendTCPCommand(server, command);
             // TCP başarısız olduysa, UDP'yi dene (fallback)
             if (response == null && !command.startsWith("QUIT")) {
@@ -173,7 +175,9 @@ public class Proxy {
                 response = sendUDPCommand(server, command);
                 // UDP başarılı olduysa, bundan sonra bu sunucu için UDP kullan
                 if (response != null) {
-                    server.isTCP = false;
+                    synchronized (server) {
+                        server.isTCP = false;
+                    }
                 }
             }
         } else {
@@ -184,7 +188,9 @@ public class Proxy {
                 response = sendTCPCommand(server, command);
                 // TCP başarılı olduysa, bundan sonra bu sunucu için TCP kullan
                 if (response != null) {
-                    server.isTCP = true;
+                    synchronized (server) {
+                        server.isTCP = true;
+                    }
                 }
             }
         }
