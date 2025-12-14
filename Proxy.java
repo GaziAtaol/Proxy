@@ -16,6 +16,8 @@ public class Proxy {
     private Set<String> processedSessions = ConcurrentHashMap.newKeySet();
 
     private volatile boolean running = true;
+    // Dedicated socket for sending UDP responses
+    private DatagramSocket udpSendSocket;
 //=====================================================================================================
     static class ServerInfo {
         String address;
@@ -294,6 +296,8 @@ public class Proxy {
     private void startUDPListener() {
         try {
             DatagramSocket socket = new DatagramSocket(port);
+            // Create a separate socket for sending responses
+            udpSendSocket = new DatagramSocket();
             System.out.println("UDP listener started on port " + port);
 
             while (running) {
@@ -321,11 +325,11 @@ public class Proxy {
                             byte[] responseData = response.getBytes(StandardCharsets.UTF_8);
                             DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, clientAddress, clientPort);
                             
-                            // Create a new socket for sending the response to avoid issues with the listening socket
-                            try (DatagramSocket sendSocket = new DatagramSocket()) {
-                                sendSocket.send(responsePacket);
-                                System.out.println("UDP response sent to " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + response + "\"");
+                            // Use the dedicated send socket (thread-safe with synchronization)
+                            synchronized (udpSendSocket) {
+                                udpSendSocket.send(responsePacket);
                             }
+                            System.out.println("UDP response sent to " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + response + "\"");
                         } catch (IOException e) {
                             System.err.println("UDP response error: " + e.getMessage());
                         } catch (Exception e) {
@@ -339,6 +343,9 @@ public class Proxy {
                 }
             }
             socket.close();
+            if (udpSendSocket != null) {
+                udpSendSocket.close();
+            }
         } catch (SocketException e) {System.err.println("UDP listener error: " + e.getMessage());}
     }
 
