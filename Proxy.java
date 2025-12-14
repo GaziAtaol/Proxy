@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.nio.charset.StandardCharsets;
 //=====================================================================================================
 public class Proxy {
     private int port;
@@ -138,7 +139,7 @@ public class Proxy {
             DatagramSocket socket = new DatagramSocket();
             socket.setSoTimeout(2000);
             String command = "GET NAMES\n";
-            byte[] buffer = command.getBytes();
+            byte[] buffer = command.getBytes(StandardCharsets.UTF_8);
 
             DatagramPacket packet = new DatagramPacket(
                     buffer,
@@ -152,7 +153,7 @@ public class Proxy {
             buffer = new byte[1024];
             packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            String response = new String(packet.getData(), 0, packet.getLength()).trim();
+            String response = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
             socket.close();
             return response.startsWith("OK");
         } catch (Exception e) {
@@ -199,7 +200,9 @@ public class Proxy {
 
     private String sendTCPCommand(ServerInfo server, String command) {
         try {
-            Socket socket = new Socket(server.address, server.port);
+            Socket socket = new Socket();
+            socket.connect(new InetSocketAddress(server.address, server.port), 2000);
+            socket.setSoTimeout(2000);
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -223,7 +226,7 @@ public class Proxy {
             DatagramSocket socket = new DatagramSocket();
             socket.setSoTimeout(2000);
 
-            byte[] buffer = (command + "\n").getBytes();
+            byte[] buffer = (command + "\n").getBytes(StandardCharsets.UTF_8);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
                     InetAddress.getByName(server.address), server.port);
             socket.send(packet);
@@ -237,7 +240,7 @@ public class Proxy {
             buffer = new byte[1024];
             packet = new DatagramPacket(buffer, buffer.length);
             socket.receive(packet);
-            String response = new String(packet.getData(), 0, packet.getLength()).trim();
+            String response = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
 
             socket.close();
             return response;
@@ -303,21 +306,30 @@ public class Proxy {
 
                     final InetAddress clientAddress = packet.getAddress();
                     final int clientPort = packet.getPort();
-                    final String request = new String(packet.getData(), 0, packet.getLength()).trim();
+                    final String request = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
+
+                    System.out.println("UDP request from " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + request + "\"");
 
                     new Thread(() -> {
-                        String response = processCommand(request);
-                        if (response == null) {
-                            // QUIT vs. için cevap yok
-                            return;
-                        }
-
                         try {
-                            byte[] responseData = response.getBytes();
+                            String response = processCommand(request);
+                            if (response == null) {
+                                // QUIT vs. için cevap yok
+                                return;
+                            }
+
+                            byte[] responseData = response.getBytes(StandardCharsets.UTF_8);
                             DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, clientAddress, clientPort);
-                            synchronized (socket) {socket.send(responsePacket);}
+                            synchronized (socket) {
+                                socket.send(responsePacket);
+                            }
+                            System.out.println("UDP response sent to " + clientAddress.getHostAddress() + ":" + clientPort + " => \"" + response + "\"");
+                        } catch (IOException e) {
+                            System.err.println("UDP response error: " + e.getMessage());
+                        } catch (Exception e) {
+                            System.err.println("UDP processing error: " + e.getMessage());
+                            e.printStackTrace();
                         }
-                        catch (IOException e) {System.err.println("UDP response error: " + e.getMessage());}
                     }).start();
                 }
                 catch (IOException e) {
